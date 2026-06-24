@@ -1,0 +1,53 @@
+# Model & training configuration
+
+data:
+  n_samples: 300000                # Used by --quick as the max sampled row count
+  sample_size: null               # Optional row sample for full runs; null uses all eligible rows
+  random_state: 42
+  test_size: 0.20
+  val_size: 0.10
+  raw_path: "data/raw/lending_club.csv"
+  processed_path: "data/processed/loans_clean.parquet"
+  features_path: "data/features/loans_engineered.parquet"
+
+model:
+  xgboost:
+    n_trials: 100                  # Optuna trials
+    n_estimators: 500
+    max_depth: 6
+    learning_rate: 0.05
+    subsample: 0.8
+    colsample_bytree: 0.8
+    reg_alpha: 0.1
+    reg_lambda: 1.0
+    scale_pos_weight: 3.0
+    eval_metric: "aucpr"
+    random_state: 42
+
+  neural_net:
+    hidden_dims: [256, 128, 64]
+    dropout: 0.3
+    epochs: 30
+    batch_size: 512
+    learning_rate: 0.001
+
+  logistic_regression:
+    max_iter: 1000
+    class_weight: "balanced"
+
+business:
+  decision_threshold: 0.35        # PD threshold for approve/decline
+  lgd: 0.45                       # Loss Given Default assumption
+
+mlflow:
+  tracking_uri: "mlruns"
+  experiment_name: "credit-risk-platform"
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  workers: 4
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
