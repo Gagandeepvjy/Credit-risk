@@ -131,10 +131,12 @@ Default LGD assumption: `0.45`
 
 ## Experiment Tracking
 
-MLflow is used to log parameters, metrics, and model artifacts during training. To view the MLflow UI:
+MLflow is used to log parameters, metrics, and model artifacts during training. Experiments are stored in `mlflow.db` (SQLite) — the filesystem backend was deprecated in MLflow 3+.
+
+To view the MLflow UI:
 
 ```bash
-mlflow ui --backend-store-uri mlruns
+mlflow ui --backend-store-uri sqlite:///mlflow.db
 ```
 
 Then open `http://localhost:5000` in your browser.
