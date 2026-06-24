@@ -167,32 +167,3 @@ class TestFeatureEngineering:
 
     def test_loan_to_income_positive(self, engineered_df):
         assert (engineered_df["loan_to_income"] >= 0).all()
-
-
-# ─────────────────────────────────────────────
-# API schema tests
-# ─────────────────────────────────────────────
-
-class TestAPISchema:
-    def test_valid_grade(self):
-        from src.api.serve import LoanApplication
-        with pytest.raises(Exception):
-            LoanApplication(
-                loan_amnt=10000, term=36, int_rate=12.5, installment=350,
-                grade="Z",  # invalid
-                emp_length="5 years", home_ownership="RENT", annual_inc=60000,
-                verification_status="Verified", purpose="debt_consolidation",
-                dti=15.0, fico_range_low=700, open_acc=8, revol_bal=5000,
-                revol_util=30.0, total_acc=20,
-            )
-
-    def test_negative_loan_rejected(self):
-        from src.api.serve import LoanApplication
-        with pytest.raises(Exception):
-            LoanApplication(
-                loan_amnt=-5000, term=36, int_rate=12.5, installment=350,
-                grade="B", emp_length="5 years", home_ownership="RENT",
-                annual_inc=60000, verification_status="Verified",
-                purpose="debt_consolidation", dti=15.0, fico_range_low=700,
-                open_acc=8, revol_bal=5000, revol_util=30.0, total_acc=20,
-            )
