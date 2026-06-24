@@ -17,20 +17,32 @@ MODEL_COLUMNS = [
     "int_rate",
     "installment",
     "grade",
+    "sub_grade",
     "emp_length",
+    "emp_title",
     "home_ownership",
     "annual_inc",
+    "annual_inc_joint",
     "verification_status",
     "purpose",
+    "zip_code",
+    "addr_state",
+    "application_type",
+    "issue_d",
+    "earliest_cr_line",
     "dti",
     "delinq_2yrs",
+    "inq_last_6mths",
     "fico_range_low",
     "open_acc",
+    "acc_now_delinq",
     "pub_rec",
     "revol_bal",
     "revol_util",
+    "total_rev_hi_lim",
     "total_acc",
     "mort_acc",
+    "collections_12_mths_ex_med",
     "pub_rec_bankruptcies",
     "loan_status",
 ]
@@ -88,6 +100,10 @@ def prepare_lending_club_dataframe(
         if col in df.columns:
             df[col] = df[col].astype(str).str.replace("%", "", regex=False)
 
+    for col in ["issue_d", "earliest_cr_line"]:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce")
+
     for col in MODEL_COLUMNS:
         if col not in df.columns:
             df[col] = np.nan
@@ -98,15 +114,20 @@ def prepare_lending_club_dataframe(
         "int_rate",
         "installment",
         "annual_inc",
+        "annual_inc_joint",
         "dti",
         "delinq_2yrs",
+        "inq_last_6mths",
         "fico_range_low",
         "open_acc",
+        "acc_now_delinq",
         "pub_rec",
         "revol_bal",
         "revol_util",
+        "total_rev_hi_lim",
         "total_acc",
         "mort_acc",
+        "collections_12_mths_ex_med",
         "pub_rec_bankruptcies",
     ]
     for col in numeric_cols:
@@ -160,7 +181,9 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     # Fill missing categoricals with mode
     cat_cols = df.select_dtypes(include="object").columns
     for col in cat_cols:
-        df[col] = df[col].fillna(df[col].mode()[0])
+        mode = df[col].mode(dropna=True)
+        fill_value = mode.iloc[0] if not mode.empty else "UNKNOWN"
+        df[col] = df[col].fillna(fill_value)
 
     logger.info("Data cleaning complete")
     return df
@@ -175,7 +198,15 @@ class CreditCategoricalEncoder(BaseEstimator, TransformerMixin):
         "4 years": 4, "5 years": 5, "6 years": 6, "7 years": 7,
         "8 years": 8, "9 years": 9, "10+ years": 10
     }
-    nominal_columns = ["home_ownership", "verification_status", "purpose"]
+    nominal_columns = [
+        "home_ownership",
+        "verification_status",
+        "purpose",
+        "sub_grade",
+        "addr_state",
+        "application_type",
+    ]
+    frequency_columns = ["zip_code", "emp_title"]
 
     def fit(self, X: pd.DataFrame, y=None):
         self.category_maps_ = {}
@@ -183,6 +214,13 @@ class CreditCategoricalEncoder(BaseEstimator, TransformerMixin):
             if col in X.columns:
                 values = sorted(X[col].astype(str).fillna("UNKNOWN").unique())
                 self.category_maps_[col] = {value: idx for idx, value in enumerate(values)}
+
+        self.frequency_maps_ = {}
+        for col in self.frequency_columns:
+            if col in X.columns:
+                self.frequency_maps_[col] = (
+                    X[col].astype(str).fillna("UNKNOWN").value_counts(normalize=True).to_dict()
+                )
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -202,6 +240,12 @@ class CreditCategoricalEncoder(BaseEstimator, TransformerMixin):
             if col in df.columns:
                 mapping = getattr(self, "category_maps_", {}).get(col, {})
                 df[col] = df[col].astype(str).fillna("UNKNOWN").map(mapping).fillna(-1).astype(int)
+
+        for col in self.frequency_columns:
+            if col in df.columns:
+                mapping = getattr(self, "frequency_maps_", {}).get(col, {})
+                df[f"{col}_freq"] = df[col].astype(str).fillna("UNKNOWN").map(mapping).fillna(0.0)
+                df = df.drop(columns=[col])
 
         return df
 

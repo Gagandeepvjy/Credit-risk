@@ -64,20 +64,24 @@ def run_pipeline(
     )
 
     df = clean_data(df_raw)
-    encoder = CreditCategoricalEncoder()
-    df = encoder.fit_transform(df)
-
-    logger.info("━━━ STEP 2: Feature Engineering ━━━")
-    fe = CreditFeatureEngineer()
-    df = fe.fit_transform(df)
-
-    logger.info("━━━ STEP 3: Train/Val/Test Split ━━━")
-    X_train, X_val, X_test, y_train, y_val, y_test = split_data(
+    logger.info("━━━ STEP 2: Train/Val/Test Split ━━━")
+    X_train_raw, X_val_raw, X_test_raw, y_train, y_val, y_test = split_data(
         df,
         test_size=data_config.get("test_size", 0.2),
         val_size=data_config.get("val_size", 0.1),
         random_state=random_state,
     )
+
+    logger.info("━━━ STEP 3: Encoding & Feature Engineering ━━━")
+    encoder = CreditCategoricalEncoder()
+    X_train_encoded = encoder.fit_transform(X_train_raw)
+    X_val_encoded = encoder.transform(X_val_raw)
+    X_test_encoded = encoder.transform(X_test_raw)
+
+    fe = CreditFeatureEngineer()
+    X_train = fe.fit_transform(X_train_encoded)
+    X_val = fe.transform(X_val_encoded)
+    X_test = fe.transform(X_test_encoded)
 
     logger.info("━━━ STEP 4: Baseline — Logistic Regression ━━━")
     lr_model = train_logistic_regression(X_train, y_train)
@@ -105,8 +109,8 @@ def run_pipeline(
     )
 
     logger.info("━━━ STEP 9: Business Impact ━━━")
-    loan_amounts = df.loc[X_test.index, "loan_amnt"] if "loan_amnt" in df.columns \
-                   else pd.Series([10000] * len(X_test))
+    loan_amounts = X_test_raw["loan_amnt"] if "loan_amnt" in X_test_raw.columns \
+                   else pd.Series([10000] * len(X_test), index=X_test.index)
     _, summary = business_impact_report(xgb_model, X_test, y_test, loan_amounts)
 
     logger.info("━━━ STEP 10: Save Artifacts ━━━")

@@ -30,17 +30,23 @@ optuna.logging.set_verbosity(optuna.logging.WARNING)
 # ─────────────────────────────────────────────
 
 def _xgb_objective(trial, X_train, y_train, X_val, y_val):
+    pos = max((y_train == 1).sum(), 1)
+    neg = max((y_train == 0).sum(), 1)
+    class_ratio = neg / pos
     params = {
-        "n_estimators": trial.suggest_int("n_estimators", 200, 800),
-        "max_depth": trial.suggest_int("max_depth", 3, 9),
-        "learning_rate": trial.suggest_float("learning_rate", 1e-3, 0.3, log=True),
+        "n_estimators": trial.suggest_int("n_estimators", 400, 2000),
+        "max_depth": trial.suggest_int("max_depth", 3, 10),
+        "learning_rate": trial.suggest_float("learning_rate", 0.005, 0.15, log=True),
         "subsample": trial.suggest_float("subsample", 0.6, 1.0),
         "colsample_bytree": trial.suggest_float("colsample_bytree", 0.6, 1.0),
+        "min_child_weight": trial.suggest_float("min_child_weight", 1.0, 20.0),
+        "gamma": trial.suggest_float("gamma", 0.0, 5.0),
         "reg_alpha": trial.suggest_float("reg_alpha", 1e-4, 10.0, log=True),
         "reg_lambda": trial.suggest_float("reg_lambda", 1e-4, 10.0, log=True),
-        "scale_pos_weight": trial.suggest_float("scale_pos_weight", 1.0, 5.0),
-        "use_label_encoder": False,
+        "scale_pos_weight": trial.suggest_float("scale_pos_weight", max(1.0, class_ratio * 0.5), class_ratio * 1.5),
         "eval_metric": "aucpr",
+        "tree_method": "hist",
+        "n_jobs": -1,
         "random_state": 42,
     }
     model = XGBClassifier(**params)
@@ -60,7 +66,7 @@ def train_xgboost(X_train, y_train, X_val, y_val, n_trials: int = 30,
             n_trials=n_trials,
         )
         best_params = study.best_params
-        best_params.update({"use_label_encoder": False, "eval_metric": "aucpr", "random_state": 42})
+        best_params.update({"eval_metric": "aucpr", "tree_method": "hist", "n_jobs": -1, "random_state": 42})
         logger.info(f"XGBoost best PR-AUC: {study.best_value:.4f}")
 
         model = XGBClassifier(**best_params)

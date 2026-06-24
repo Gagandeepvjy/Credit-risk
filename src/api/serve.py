@@ -69,20 +69,32 @@ class LoanApplication(BaseModel):
     int_rate:             float = Field(..., gt=0, lt=40)
     installment:          float = Field(..., gt=0)
     grade:                str   = Field(..., description="LC grade: A-G")
+    sub_grade:            Optional[str] = None
     emp_length:           str   = Field(..., description="Employment length string")
+    emp_title:            Optional[str] = None
     home_ownership:       str
     annual_inc:           float = Field(..., gt=0)
+    annual_inc_joint:     Optional[float] = Field(None, ge=0)
     verification_status:  str
     purpose:              str
+    zip_code:             Optional[str] = None
+    addr_state:           Optional[str] = None
+    application_type:     Optional[str] = "Individual"
+    issue_d:              Optional[str] = None
+    earliest_cr_line:     Optional[str] = None
     dti:                  float = Field(..., ge=0)
     delinq_2yrs:          int   = Field(0, ge=0)
+    inq_last_6mths:       Optional[int] = Field(0, ge=0)
     fico_range_low:       int   = Field(..., ge=300, le=850)
     open_acc:             int   = Field(..., ge=0)
+    acc_now_delinq:       Optional[int] = Field(0, ge=0)
     pub_rec:              int   = Field(0, ge=0)
     revol_bal:            float = Field(..., ge=0)
     revol_util:           float = Field(..., ge=0, le=100)
+    total_rev_hi_lim:     Optional[float] = Field(None, ge=0)
     total_acc:            int   = Field(..., ge=0)
     mort_acc:             int   = Field(0, ge=0)
+    collections_12_mths_ex_med: Optional[int] = Field(0, ge=0)
     pub_rec_bankruptcies: int   = Field(0, ge=0)
 
     @field_validator("grade")
