@@ -1,8 +1,8 @@
 # Model & training configuration
 
 data:
-  n_samples: 300000                # Used by --quick as the max sampled row count
-  sample_size: null               # Optional row sample for full runs; null uses all eligible rows
+  n_samples: 60000                 # Used by --quick as the max sampled row count
+  sample_size: 60000               # Optional row sample for full runs; null uses all eligible rows
   random_state: 42
   test_size: 0.20
   val_size: 0.10
@@ -12,7 +12,7 @@ data:
 
 model:
   xgboost:
-    n_trials: 100                  # Optuna trials
+    n_trials: 25                   # Optuna trials
     n_estimators: 500
     max_depth: 6
     learning_rate: 0.05
